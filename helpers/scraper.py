@@ -7,12 +7,12 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import InvalidArgumentException
 from selenium.common.exceptions import ElementClickInterceptedException
-
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.by import By
 class Scraper:
 	# This time is used when we are waiting for element to get loaded in the html
 	wait_element_time = 30
@@ -183,6 +183,20 @@ class Scraper:
 				return False
 
 		return element
+	
+	def is_element_intercepted(self, element):
+		# Get the element's location and size
+		location = element.location
+		size = element.size
+
+		# Check if any other element is overlapping
+		overlapping_elements = self.driver.execute_script("""
+			var rect = arguments[0].getBoundingClientRect();
+			var elements = document.elementsFromPoint(rect.left, rect.top);
+			return elements;
+		""", element)
+		return len(overlapping_elements) > 1
+
 
 	# Wait random time before clicking on the element
 	def element_click(self, selector, delay = True):
@@ -194,7 +208,71 @@ class Scraper:
 		try:
 			element.click()
 		except ElementClickInterceptedException:
+				if "Delete" in selector: 
+					#self.force_click_remove_specific_overlay(element)
+					delete_button_xpath = '//div[@role="dialog"]//div[@aria-label="Delete"]'
+					delete_button = self.find_element_by_xpath(delete_button_xpath)
+					self.driver.execute_script("arguments[0].scrollIntoView(true);", delete_button)
+					self.driver.execute_script("arguments[0].click();", delete_button)
+				else:
+					self.driver.execute_script("arguments[0].click();", element)
+
+	def force_click_remove_specific_overlay(self, element):
+		try:
+			self.driver.execute_script("""
+            var overlays = document.querySelectorAll('div[role="presentation"], div[role="dialog"], .modal-backdrop, .blocker, .x78zum5, .xdney7k');
+            overlays.forEach(function(overlay) {
+                overlay.style.display = 'none';
+            });
+        	""")
+			self.driver.execute_script("arguments[0].scrollIntoView(true);", element)
+			
 			self.driver.execute_script("arguments[0].click();", element)
+			print("Successfully clicked the element after removing specific overlays")
+		except Exception as e:
+			print(f"Failed to click the element: {e}")
+
+
+	def retry_click_element(self, element, max_retries=5):
+		retries = 0
+		while retries < max_retries:
+			try:
+				self.driver.execute_script("arguments[0].click();", element)
+				print(f"Clicked element on retry {retries + 1}")
+				break  # Exit loop if successful
+			except Exception as e:
+				print(f"Retry {retries + 1} failed: {e}")
+				retries += 1
+				time.sleep(1)  # Wait a bit before retrying
+				
+				if retries == max_retries:
+					print(f"Failed to click element after {max_retries} retries")
+
+	def force_click_element(self, selector):
+		element = self.find_element(selector)
+		location = element.location
+		size = element.size
+		middle_x = location['x'] + size['width'] / 2
+		middle_y = location['y'] + size['height'] / 2
+		
+		
+		self.driver.execute_script(f"window.scrollTo({middle_x}, {middle_y});")  # Scroll to element's location
+		self.driver.execute_script(f"document.elementFromPoint({middle_x}, {middle_y}).click();")
+		print(f"Force clicked at coordinates ({middle_x}, {middle_y})")
+		
+	# Clicks on an element even if it is covered by an overlay using JavaScript or direct interaction.
+	# :param driver: The WebDriver instance
+	# :param css_selector: The CSS selector of the element to click
+	# :param timeout: Time to wait for the element to be clickable
+	def click_overlapping_element(self, css_selector, timeout=10):
+		try:
+			print(f"Attempting to click click_overlapping_element: {css_selector}")				
+			actions = ActionChains(self.driver)
+			element = self.find_element(css_selector)
+			actions.move_to_element(element).click().perform()
+	
+		except Exception as e:
+			print(f"Failed to click click_overlapping_element: {css_selector}")				
 
 	# Wait random time before clicking on the element
 	def element_click_by_xpath(self, xpath, delay = True):
@@ -207,6 +285,7 @@ class Scraper:
 			element.click()
 		except ElementClickInterceptedException:
 			self.driver.execute_script("arguments[0].click();", element)
+
 
 	# Wait random time before sending the keys to the element
 	def element_send_keys(self, selector, text, delay = True):

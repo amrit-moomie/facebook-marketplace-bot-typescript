@@ -27,12 +27,16 @@ def remove_listing(data, listing_type, scraper) :
 	scraper.element_click('div:not([role="gridcell"]) > div[aria-label="Delete"][tabindex="0"]')
 	
 	# Click on confirm button to delete
-	confirm_delete_selector = 'div[aria-label="Delete listing"] div[aria-label="Delete"][tabindex="0"]'
-	if scraper.find_element(confirm_delete_selector, False, 3):
+	confirm_delete_selector = 'div[role="dialog"] div[aria-label="Delete"][role="button"]'
+	elm = scraper.find_element(confirm_delete_selector, False, 10)
+	# print(elm)
+	if elm:
 		scraper.element_click(confirm_delete_selector)
 	else:
-		confirm_delete_selector = 'div[aria-label="Delete Listing"] div[aria-label="Delete"][tabindex="0"]'
-		if scraper.find_element(confirm_delete_selector, True, 3):
+		confirm_delete_selector = 'div[aria-label="Delete"][tabindex="0"]'
+		elm2 = scraper.find_element(confirm_delete_selector, True, 10)
+		# print(elm)
+		if elm2:
 			scraper.element_click(confirm_delete_selector)
 	
 	# Wait until the popup is closed
@@ -59,22 +63,33 @@ def publish_listing(data, listing_type, scraper):
 	scraper.element_send_keys('label[aria-label="Location"] input', data['Location'])
 	scraper.element_click('ul[role="listbox"] li:first-child > div')
 
-	next_button_selector = 'div [aria-label="Next"] > div'
-	next_button = scraper.find_element(next_button_selector, False, 3)
-	if next_button:
+	scraper.element_click('div[aria-label="Save Draft"]:not([aria-disabled])')
+
+	# Wait for the Leave Dialog to appear
+	leave_page_selector = 'div[aria-label="Save Draft"]:not([aria-disabled])'
+	leave_page_button = scraper.find_element(leave_page_selector, False, 10)
+
+	if leave_page_button:
+		scraper.element_click(leave_page_selector)
+	# next_button_selector = 'div [aria-label="Next"] > div'
+	# next_button = scraper.find_element(next_button_selector, False, 3)
+	# if next_button:
 		# Go to the next step
-		scraper.element_click(next_button_selector)
+		# scraper.element_click(next_button_selector)
 		# Add listing to multiple groups
-		add_listing_to_multiple_groups(data, scraper)
+		# add_listing_to_multiple_groups(data, scraper)
 
 	# Publish the listing
-	scraper.element_click('div[aria-label="Publish"]:not([aria-disabled])')
+	# scraper.element_click('div[aria-label="Publish"]:not([aria-disabled])')
 
 	# Wait until the listing is published and we are on the listings page where there is a search input
-	scraper.find_element('input[placeholder="Search your listings"]', False)
+	scraper.go_to_page('https://facebook.com/marketplace/you/selling')
+
+	#scraper.find_element('input[placeholder="Search your listings"]', False)
 
 	# if not next_button:
-	post_listing_to_multiple_groups(data, listing_type, scraper)
+	#clear
+	# post_listing_to_multiple_groups(data, listing_type, scraper)
 
 
 def generate_multiple_images_path(path, images):

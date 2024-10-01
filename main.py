@@ -14,6 +14,6 @@ item_listings = get_data_from_csv('items')
 update_listings(item_listings, 'item', scraper)
 
 # Get data for vechile type listings from csvs/vechiles.csv
-vehicle_listings = get_data_from_csv('vehicles')
-# Publish all of the vehicles into the facebook marketplace
-update_listings(vehicle_listings, 'vehicle', scraper)
+# vehicle_listings = get_data_from_csv('vehicles')
+# # Publish all of the vehicles into the facebook marketplace
+# update_listings(vehicle_listings, 'vehicle', scraper)
